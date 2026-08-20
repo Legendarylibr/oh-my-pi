@@ -2,7 +2,9 @@
 
 ## [Unreleased]
 
-## [17.4.0] - 2026-08-20
+### Fixed
+
+- Fixed credential selection always preferring the oldest stored credential on cold start: a freshly logged-in account was last in the default `ORDER BY id ASC` query, so session-free and cold-start credential selection tried the oldest stale credential first, wasting a 401 round-trip. Changed `getNextRoundRobinIndex` to start from the newest credential (most recently added via login) and updated the all-blocked fallback to prefer the newest credential, while keeping `listAuthCredentials()` in oldest-first order to preserve API contracts and dedupe reliability ([#9122](https://github.com/can1357/oh-my-pi/pull/9122)).
 
 ### Added
 

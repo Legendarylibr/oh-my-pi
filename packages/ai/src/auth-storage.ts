@@ -1699,7 +1699,14 @@ export class AuthStorage {
 	 */
 	#getNextRoundRobinIndex(providerKey: string, total: number): number {
 		if (total <= 1) return 0;
-		const current = this.#providerRoundRobinIndex.get(providerKey) ?? -1;
+		const current = this.#providerRoundRobinIndex.get(providerKey);
+		// Cold start: prefer the newest credential (last index) over the oldest (index 0).
+		// Subsequent calls round-robin from there.
+		if (current === undefined) {
+			const newest = total - 1;
+			this.#providerRoundRobinIndex.set(providerKey, newest);
+			return newest;
+		}
 		const next = (current + 1) % total;
 		this.#providerRoundRobinIndex.set(providerKey, next);
 		return next;
@@ -2177,7 +2184,8 @@ export class AuthStorage {
 
 		const providerKey = this.#getProviderTypeKey(provider, "api_key");
 		const order = this.#getCredentialOrder(providerKey, sessionId, credentials.length);
-		const fallback = credentials[order[0]];
+		// When every candidate is blocked, prefer the newest credential.
+		const fallback = credentials[credentials.length - 1];
 		const strategy = this.#rankingStrategyResolver?.(provider);
 		if (!strategy) {
 			for (const idx of order) {
